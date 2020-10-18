@@ -1,0 +1,4 @@
+RewriteEngine on
+
+
+RewriteRule ^admin.php$ /path/admin.php [R]
