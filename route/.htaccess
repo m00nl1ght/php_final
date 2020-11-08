@@ -1,8 +1,0 @@
-RewriteEngine on
-
-# RewriteRule ^route/index.php [L,R=301]
-# RewriteRule ^route(.*)$ /index.php [L,R=301]
-
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . index.php 

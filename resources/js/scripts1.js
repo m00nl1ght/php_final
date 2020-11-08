@@ -1,6 +1,5 @@
 'use strict';
 
-//функция отправки на сервер json
 let sendToController = async function(data, url) {
   let response = await fetch(url, {
       method: 'POST',
@@ -16,18 +15,6 @@ let sendToController = async function(data, url) {
       return result;
   };
 }
-
-//функция отправки на сервер формы
-const ajaxSend = async (formData, url) => {
-  const fetchResp = await fetch(url, {
-      method: 'POST',
-      body: formData
-  });
-  if (!fetchResp.ok) {
-      throw new Error(`Ошибка по адресу ${url}, статус ошибки ${fetchResp.status}`);
-  }
-  return await fetchResp.text();
-};
 
 const toggleHidden = (...fields) => {
 
@@ -135,9 +122,8 @@ if (filterWrapper) {
 const shopList = document.querySelector('.shop__list');
 if (shopList) {
 
-  shopList.addEventListener('click', (evt) => { //клик на товар -> переход к форме заказа (evt.target - карточка товара)
+  shopList.addEventListener('click', (evt) => {
 
-    const productPrice = evt.target.querySelector('.js-product__price').textContent;
     const prod = evt.path || (evt.composedPath && evt.composedPath());;
 
     if (prod.some(pathItem => pathItem.classList && pathItem.classList.contains('shop__item'))) {
@@ -159,7 +145,7 @@ if (shopList) {
       const buttonOrder = shopOrder.querySelector('.button');
       const popupEnd = document.querySelector('.shop-page__popup-end');
 
-      buttonOrder.addEventListener('click', (evt) => { //кнопка сабмит формы
+      buttonOrder.addEventListener('click', (evt) => {
 
         form.noValidate = true;
 
@@ -180,37 +166,33 @@ if (shopList) {
           }
         });
 
-        if (inputs.every(inp => !!inp.value)) { //сабмит формы заказа товара
+        if (inputs.every(inp => !!inp.value)) {
 
           evt.preventDefault();
 
-          let formData = new FormData(form);
-          formData.append('price', productPrice);
+          toggleHidden(shopOrder, popupEnd);
 
-          ajaxSend(formData, '/orders/store')
-          .then((response) => {
-            if (response == 'success') {
-              toggleHidden(shopOrder, popupEnd);
-              popupEnd.classList.add('fade');
-              setTimeout(() => popupEnd.classList.remove('fade'), 1000);
-              window.scroll(0, 0);
-    
-              const buttonEnd = popupEnd.querySelector('.button');
-    
-              buttonEnd.addEventListener('click', () => { //кнопка перехода Возвращеине к покупкам
-                popupEnd.classList.add('fade-reverse');
-    
-                setTimeout(() => {
-                  popupEnd.classList.remove('fade-reverse');
-    
-                  toggleHidden(popupEnd, document.querySelector('.intro'), document.querySelector('.shop')); 
-                }, 1000);
-              });
-            } else {
-              alert ('Что-то пошло не так, попробуйте еще раз!');
-            }
-          })
-          .catch((err) => console.error(err));
+          popupEnd.classList.add('fade');
+          setTimeout(() => popupEnd.classList.remove('fade'), 1000);
+
+          window.scroll(0, 0);
+
+          const buttonEnd = popupEnd.querySelector('.button');
+
+          buttonEnd.addEventListener('click', () => {
+
+
+            popupEnd.classList.add('fade-reverse');
+
+            setTimeout(() => {
+
+              popupEnd.classList.remove('fade-reverse');
+
+              toggleHidden(popupEnd, document.querySelector('.intro'), document.querySelector('.shop'));
+
+            }, 1000);
+
+          });
 
         } else {
           window.scroll(0, 0);
@@ -248,11 +230,11 @@ if (pageOrderList) {
       const status = evt.target.previousElementSibling;
 
       let data = {
-        'id': status.closest('.js-order').querySelector('.js-order__id').textContent,
+        'orderId': status.closest('.js-order').querySelector('.js-order__id').textContent,
         'status': status.classList.contains('order-item__info--no')?'completed':'new'
       };
 
-      sendToController(data, '/admin/orders/status').then((response) => {
+      sendToController(data, '/controllers/orderStatus.php').then((response) => {
         if(response) {
           if (status.classList && status.classList.contains('order-item__info--no')) {
             status.textContent = 'Выполнено';
@@ -266,7 +248,6 @@ if (pageOrderList) {
       });
     }
   });
-
 }
 
 const checkList = (list, btn) => {
@@ -284,6 +265,17 @@ const checkList = (list, btn) => {
 //форма добавления товара
 const addList = document.querySelector('.add-list');
 if (addList) {
+
+  const ajaxSend = async (formData) => {
+    const fetchResp = await fetch('/controllers/addPoductForm.php', {
+        method: 'POST',
+        body: formData
+    });
+    if (!fetchResp.ok) {
+        throw new Error(`Ошибка по адресу ${url}, статус ошибки ${fetchResp.status}`);
+    }
+    return await fetchResp.text();
+  };
 
   const form = document.querySelector('.custom-form');
   labelHidden(form);
@@ -319,39 +311,27 @@ if (addList) {
 
   });
 
+  const button = document.querySelector('.button');
   const popupEnd = document.querySelector('.page-add__popup-end');
 
   form.addEventListener('submit', (evt) => {
 
     evt.preventDefault();
 
-    const productIdElem = document.querySelector('#product-id');
-    let serverUrl = '';
-
-    if(productIdElem.value == '') {
-      serverUrl = '/admin/products/store';
-    } else {
-      serverUrl = '/admin/products/update';
-    }
-
     const formData = new FormData(evt.target);
 
-    ajaxSend(formData, serverUrl)
+    ajaxSend(formData)
       .then((response) => {
         if(response == 'success') {
           form.hidden = true;
           popupEnd.hidden = false;
           form.reset(); // очищаем поля формы 
-        } else {
-          alert(response);
         }
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error(err))
   });
-
 }
 
-//кнопка удаления товара
 const productsList = document.querySelector('.page-products__list');
 if (productsList) {
 
@@ -361,17 +341,12 @@ if (productsList) {
 
     if (target.classList && target.classList.contains('product-item__delete')) {
 
-      let data = {
-        'id': target.parentElement.querySelector('.js-product-id').textContent
-      };
+      productsList.removeChild(target.parentElement);
 
-      sendToController(data, '/admin/products/destroy').then((response) => {
-        if (response) {
-          productsList.removeChild(target.parentElement);
-        }
-      });
     }
+
   });
+
 }
 
 // jquery range maxmin
@@ -388,7 +363,6 @@ if (document.querySelector('.shop-page')) {
 
       $('.js-min__price').text($('.range__line').slider('values', 0));
       $('.js-max__price').text($('.range__line').slider('values', 1));
-
     },
     slide: function(event, ui) {
 

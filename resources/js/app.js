@@ -14,36 +14,43 @@ for (let checkBox of checkboxAllElem) {
 const filterCategoryElem = document.querySelectorAll('.js-filter__category');
 const checkboxNewElem = document.querySelector('#new');
 const checkboxSaleElem = document.querySelector('#sale');
-const minPriceElem = document.querySelector('.js-min__price');
-const maxPriceElem = document.querySelector('.js-max__price');
+let minPriceElem = document.querySelector('.js-min__price');
+let maxPriceElem = document.querySelector('.js-max__price');
 
-filterFormElem.addEventListener('submit', (e) => {
-    e.preventDefault();
+
+if(filterFormElem) {
+
+
+    filterFormElem.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        let filterCategory = '';
+
+        
+        filterCategoryElem.forEach((elem) => {
+            if(elem.classList.contains('active')){
+                filterCategory = elem.getAttribute('href');
+            }
+        });
     
-    let filterCategory = '';
-    
-    filterCategoryElem.forEach((elem) => {
-        if(elem.classList.contains('active')){
-            filterCategory = elem.getAttribute('href');
+        let data = {
+            filterCategoryUrl: filterCategory,
+            filterNew: checkboxNewElem.hasAttribute('checked'),
+            filterSale: checkboxSaleElem.hasAttribute('checked'),
+            filterMin: minPriceElem.textContent,
+            filterMax: maxPriceElem.textContent
         }
+    
+        sendData(data, '/filter').then((response) => {
+            insertContent(shopWrapperElem, response);
+        });
     });
+}
 
-    let data = {
-        filterCategoryUrl: filterCategory,
-        filterNew: checkboxNewElem.hasAttribute('checked'),
-        filterSale: checkboxSaleElem.hasAttribute('checked'),
-        filterMin: minPriceElem.textContent,
-        filterMax: maxPriceElem.textContent
-    }
-
-    sendData(data).then((response) => {
-        insertContent(shopWrapperElem, response);
-    });
-});
 
 //отправка в контроллер
-let sendData = async function(data) {
-    let response = await fetch('/controllers/index.php', {
+let sendData = async function(data, url) {
+    let response = await fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json;charset=utf-8'
@@ -71,13 +78,18 @@ let insertContent = function (parent, content) {
 const sortCategoryElem = document.querySelector('.js-sort-category');
 const sortPriceElem = document.querySelector('.js-sort-prices');
 
-sortCategoryElem.addEventListener('change', () => {
-    checkSortField();
-});
+if(sortCategoryElem) {
+    sortCategoryElem.addEventListener('change', () => {
+        checkSortField();
+    });
+}
 
-sortPriceElem.addEventListener('change', () => {
-    checkSortField();
-});
+if(sortPriceElem) {
+    sortPriceElem.addEventListener('change', () => {
+        checkSortField();
+    });
+}
+
 
 let checkSortField = function() {
     let sortCategory = sortCategoryElem.options[sortCategoryElem.selectedIndex].value;
@@ -85,7 +97,6 @@ let checkSortField = function() {
     
     if(sortCategory !== "" && sortPrice !== "") {
         sortFunc();
-        console.log('поехали');
     }
 }
 
@@ -108,7 +119,7 @@ let sortFunc = function() {
         sortPrice: sortPriceElem.options[sortPriceElem.selectedIndex].value
     }
 
-    sendData(data).then((response) => {
+    sendData(data, '/filter/sort').then((response) => {
         insertContent(shopListElem, response);
     });
 }
